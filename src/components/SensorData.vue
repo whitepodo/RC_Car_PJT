@@ -7,14 +7,9 @@
       <option value="Second_Car">Second_Car</option>
     </select>
 
-    <ul>
-      <li v-for="item in sensorData" :key="item.id">
-        🕒 {{ item.time?.toDate().toLocaleString() }} |
-        🌡️ 온도: {{ item.temp }} |
-        💧 습도: {{ item.humi }} |
-        🪨 가스: {{ item.gas }}
-      </li>
-    </ul>
+    <line-chart :chart-data="tempChartData" title="온도 (°C)" />
+    <line-chart :chart-data="humiChartData" title="습도 (%)" />
+    <line-chart :chart-data="gasChartData" title="가스 (단위 없음)" />
   </div>
 </template>
 
@@ -22,24 +17,64 @@
 import { ref, onMounted } from 'vue'
 import { db } from '../firebase'
 import { collection, getDocs } from 'firebase/firestore'
+import LineChart from './LineChart.vue'
 
 const selectedCollection = ref('First_Car')
-const sensorData = ref([])
+const rawData = ref([])
+
+const tempChartData = ref(null)
+const humiChartData = ref(null)
+const gasChartData = ref(null)
 
 const loadData = async () => {
-  sensorData.value = []
+  rawData.value = []
   const querySnapshot = await getDocs(collection(db, selectedCollection.value))
   querySnapshot.forEach((doc) => {
-    sensorData.value.push({
+    rawData.value.push({
       id: doc.id,
       ...doc.data()
     })
   })
+
+  const labels = rawData.value.map(item =>
+    item.time?.toDate().toLocaleTimeString()
+  )
+
+  tempChartData.value = {
+    labels,
+    datasets: [{
+      label: '온도 (°C)',
+      data: rawData.value.map(item => item.temp),
+      fill: false,
+      borderColor: 'red',
+      tension: 0.1
+    }]
+  }
+
+  humiChartData.value = {
+    labels,
+    datasets: [{
+      label: '습도 (%)',
+      data: rawData.value.map(item => item.humi),
+      fill: false,
+      borderColor: 'blue',
+      tension: 0.1
+    }]
+  }
+
+  gasChartData.value = {
+    labels,
+    datasets: [{
+      label: '가스',
+      data: rawData.value.map(item => item.gas),
+      fill: false,
+      borderColor: 'green',
+      tension: 0.1
+    }]
+  }
 }
 
-onMounted(() => {
-  loadData()
-})
+onMounted(loadData)
 </script>
 
 <style scoped>
@@ -47,10 +82,7 @@ h2 {
   color: #2c3e50;
   margin-bottom: 1rem;
 }
-li {
-  margin: 0.5rem 0;
-}
 select {
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
 }
 </style>

@@ -1,63 +1,34 @@
 <template>
   <div>
-    <h3>{{ title }}</h3>
-    <canvas ref="canvasRef"></canvas>
+    <Line :data="chartData" :options="chartOptions" />
   </div>
 </template>
 
 <script setup>
-import { onMounted, watch, ref } from 'vue'
+import { Line } from 'vue-chartjs'
 import {
-  Chart,
-  LineController,
-  LineElement,
-  PointElement,
-  LinearScale,
+  Chart as ChartJS,
   Title,
-  CategoryScale
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement
 } from 'chart.js'
 
-Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale)
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement
+)
 
-const props = defineProps({
+defineProps({
   chartData: Object,
-  title: String
-})
-
-const canvasRef = ref(null)
-let chartInstance = null
-
-const renderChart = () => {
-  if (chartInstance) {
-    chartInstance.destroy()
-  }
-
-  chartInstance = new Chart(canvasRef.value, {
-    type: 'line',
-    data: props.chartData,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  })
-}
-
-watch(() => props.chartData, () => {
-  if (props.chartData) renderChart()
+  chartOptions: Object
 })
 </script>
-
-<style scoped>
-div {
-  margin-bottom: 3rem;
-  height: 300px;
-}
-h3 {
-  margin-bottom: 0.5rem;
-}
-</style>

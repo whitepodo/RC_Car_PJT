@@ -1,88 +1,65 @@
 <template>
   <div>
     <h2>📊 센서 데이터</h2>
-
-    <select v-model="selectedCollection" @change="loadData">
+    <select v-model="selectedCar" @change="fetchData">
       <option value="First_Car">First_Car</option>
       <option value="Second_Car">Second_Car</option>
     </select>
-
-    <line-chart :chart-data="tempChartData" title="온도 (°C)" />
-    <line-chart :chart-data="humiChartData" title="습도 (%)" />
-    <line-chart :chart-data="gasChartData" title="가스 (단위 없음)" />
+    <LineChart :chartData="chartData" :chartOptions="chartOptions" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { db } from '../firebase'
 import { collection, getDocs } from 'firebase/firestore'
+import { db } from '../firebase'
 import LineChart from './LineChart.vue'
 
-const selectedCollection = ref('First_Car')
-const rawData = ref([])
-
-const tempChartData = ref(null)
-const humiChartData = ref(null)
-const gasChartData = ref(null)
-
-const loadData = async () => {
-  rawData.value = []
-  const querySnapshot = await getDocs(collection(db, selectedCollection.value))
-  querySnapshot.forEach((doc) => {
-    rawData.value.push({
-      id: doc.id,
-      ...doc.data()
-    })
-  })
-
-  const labels = rawData.value.map(item =>
-    item.time?.toDate().toLocaleTimeString()
-  )
-
-  tempChartData.value = {
-    labels,
-    datasets: [{
-      label: '온도 (°C)',
-      data: rawData.value.map(item => item.temp),
-      fill: false,
-      borderColor: 'red',
-      tension: 0.1
-    }]
+const selectedCar = ref('First_Car')
+const chartData = ref({
+  labels: [],
+  datasets: []
+})
+const chartOptions = ref({
+  responsive: true,
+  plugins: {
+    legend: { position: 'top' },
+    title: { display: true, text: '센서 데이터 시간별 그래프' }
   }
+})
 
-  humiChartData.value = {
-    labels,
-    datasets: [{
-      label: '습도 (%)',
-      data: rawData.value.map(item => item.humi),
-      fill: false,
-      borderColor: 'blue',
-      tension: 0.1
-    }]
-  }
+const fetchData = async () => {
+  const querySnapshot = await getDocs(collection(db, selectedCar.value))
+  const docs = []
+  querySnapshot.forEach(doc => docs.push(doc.data()))
 
-  gasChartData.value = {
-    labels,
-    datasets: [{
-      label: '가스',
-      data: rawData.value.map(item => item.gas),
-      fill: false,
-      borderColor: 'green',
-      tension: 0.1
-    }]
+  // 시간순 정렬
+  docs.sort((a, b) => new Date(a.time) - new Date(b.time))
+
+  chartData.value = {
+    labels: docs.map(d => new Date(d.time).toLocaleTimeString()),
+    datasets: [
+      {
+        label: '온도 (℃)',
+        data: docs.map(d => d.temp),
+        borderColor: 'red',
+        tension: 0.2
+      },
+      {
+        label: '습도 (%)',
+        data: docs.map(d => d.humi),
+        borderColor: 'blue',
+        tension: 0.2
+      },
+      {
+        label: '가스',
+        data: docs.map(d => d.gas),
+        borderColor: 'green',
+        tension: 0.2
+      }
+    ]
   }
 }
 
-onMounted(loadData)
+onMounted(fetchData)
 </script>
-
-<style scoped>
-h2 {
-  color: #2c3e50;
-  margin-bottom: 1rem;
-}
-select {
-  margin-bottom: 2rem;
-}
-</style>

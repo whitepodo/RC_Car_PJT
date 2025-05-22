@@ -1,7 +1,5 @@
 <template>
-  <div id="app">
-    <SensorData />
-  </div>
+  <SensorData />
 </template>
 
 <script setup>
